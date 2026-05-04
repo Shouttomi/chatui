@@ -925,7 +925,7 @@ function SectionSearchBar({ q, setQ, page, setPage, totalPgs, total, filtered })
           <span style={{ color: "#ccc", fontSize: 10 }}>🔍</span>
           <input type="text" value={q} onChange={e => setQ(e.target.value)} placeholder="Search…"
             style={{ flex:1, border:"none", background:"none", fontSize:11.5,
-                     outline:"none", fontFamily:"inherit", minWidth:0 }} />
+                     outline:"none", fontFamily:"inherit", minWidth:0, color:"#222" }} />
           {q && <button onClick={() => setQ("")}
             style={{ border:"none", background:"none", cursor:"pointer", color:"#bbb", fontSize:13, padding:0, lineHeight:1 }}>✕</button>}
         </div>
@@ -944,11 +944,42 @@ function SectionSearchBar({ q, setQ, page, setPage, totalPgs, total, filtered })
   );
 }
 
+// Flatten every primitive value in a row object into one searchable string.
+function rowToSearchText(obj) {
+  const parts = [];
+  const walk = (v) => {
+    if (v === null || v === undefined) return;
+    if (typeof v === "object") { Object.values(v).forEach(walk); return; }
+    parts.push(String(v));
+  };
+  walk(obj);
+  return parts.join(" ").toLowerCase();
+}
+
+// Returns a relevance score (0 = no match):
+//   3 — all tokens found in the primary identifier (PO number / name)
+//   2 — all tokens found in the secondary field (supplier / group)
+//   1 — all tokens found somewhere else in the row (amount, date, id…)
+//   0 — at least one token missing → no match
+function rowMatchScore(query, row) {
+  if (!query.trim()) return 1;
+  const tokens = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+
+  const primary   = (row.po_no || row.po_number || row.po || row.name || row.grp || "").toLowerCase();
+  const secondary = (row.supplier_name || row.supplier || "").toLowerCase();
+  const full      = rowToSearchText(row);
+
+  if (!tokens.every(tok => full.includes(tok))) return 0;          // no match
+  if (tokens.every(tok => primary.includes(tok)))   return 3;      // PO number / name
+  if (tokens.every(tok => secondary.includes(tok))) return 2;      // supplier
+  return 1;                                                         // amount / date / etc.
+}
+
 function ListCard({ part }) {
   const rows = part.rows || [];
   if (!rows.length) return null;
 
-  const [q, setQ] = useState("");
+  const [q, setQ]       = useState("");
   const [page, setPage] = useState(1);
 
   const titleByType = {
@@ -961,14 +992,24 @@ function ListCard({ part }) {
   };
   const title = titleByType[part.type] || "Results";
 
-  const toStr = (r) =>
-    `${r.po_number||""} ${r.supplier_name||""} ${r.name||""} ${r.grp||""} ${r.status||""} ${r.priority||""} ${dateSearchStr(r.date||r.po_date||"")}`;
-
-  const filtered = q.trim() ? rows.filter(r => fuzzyMatch(q, toStr(r))) : rows;
+  const filtered = q.trim()
+    ? rows
+        .map(r => ({ r, score: rowMatchScore(q, r) }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(({ r }) => r)
+    : rows;
   const totalPgs = Math.max(1, Math.ceil(filtered.length / PGSZ));
   const safePg   = Math.min(page, totalPgs);
   const paged    = filtered.slice((safePg - 1) * PGSZ, safePg * PGSZ);
   const setQS    = (v) => { setQ(v); setPage(1); };
+
+  const rowLabel = (r) =>
+    r.po_number || r.po_no || r.supplier_name || r.name || r.grp || r.po || "";
+  const rowAmount = (r) =>
+    fmtINR(r.total_amount ?? r.total ?? r.balance_amount ?? r.budget);
+  const rowMeta = (r) =>
+    [r.status, r.priority, r.po_count && `${r.po_count} POs`].filter(Boolean).join(" · ") || null;
 
   return (
     <div className={Q.dcard} style={{ marginTop: 10 }}>
@@ -979,23 +1020,22 @@ function ListCard({ part }) {
         totalPgs={totalPgs} total={rows.length} filtered={filtered.length} />
       <div className={Q.dlist}>
         {paged.length === 0
-          ? <div style={{ padding:"8px 13px", fontSize:12, color:"#999" }}>No results for "{q}"</div>
-          : paged.map((r, i) => {
-            const label =
-              r.po_number || r.supplier_name || r.name || r.grp || r.po || `Row ${(safePg-1)*PGSZ+i+1}`;
-            const amount = fmtINR(r.total_amount ?? r.total ?? r.balance_amount ?? r.budget);
-            const meta = [r.status, r.priority, r.po_count && `${r.po_count} POs`].filter(Boolean).join(" · ") || null;
-            return (
-              <div key={i} className={Q.ditem} style={{ cursor: "default" }}>
-                <span className={Q.did}>#{(safePg-1)*PGSZ+i+1}</span>
-                <span className={Q.dname} style={{ minWidth: 0 }}>
-                  <span style={{ display: "block" }}>{label}</span>
-                  {meta && <span style={{ fontSize: 10.5, color: "#999", fontWeight: 400 }}>{meta}</span>}
-                </span>
-                {amount && <span style={{ fontSize: 11, color: "#444", fontWeight: 600, flexShrink: 0 }}>{amount}</span>}
-              </div>
-            );
-          })
+            ? <div style={{ padding:"8px 13px", fontSize:12, color:"#999" }}>No results for "{q}"</div>
+            : paged.map((r, i) => {
+                const label  = rowLabel(r);
+                const amount = rowAmount(r);
+                const meta   = rowMeta(r);
+                return (
+                  <div key={i} className={Q.ditem} style={{ cursor: "default" }}>
+                    <span className={Q.did}>#{(safePg-1)*PGSZ+i+1}</span>
+                    <span className={Q.dname} style={{ minWidth: 0 }}>
+                      <span style={{ display: "block" }}>{label}</span>
+                      {meta && <span style={{ fontSize: 10.5, color: "#999", fontWeight: 400 }}>{meta}</span>}
+                    </span>
+                    {amount && <span style={{ fontSize: 11, color: "#444", fontWeight: 600, flexShrink: 0 }}>{amount}</span>}
+                  </div>
+                );
+              })
         }
       </div>
     </div>
