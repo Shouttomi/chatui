@@ -1383,11 +1383,12 @@ function SupplierCard({ result }) {
 function ProjectCard({ part }) {
   const stageNum = parseInt(part.stage) || 0;
   const stageColor = stageNum === 100 ? "#16a34a" : stageNum >= 50 ? "#2d5f8a" : "#d97706";
+  const [open, setOpen] = useState(false);
   const [showComments, setShowComments] = useState(false);
 
   return (
     <div className={Q.icard} style={{ marginTop: 8 }}>
-      <div className={Q.ihdr}>
+      <div className={Q.ihdr} style={{ cursor: "pointer" }} onClick={() => setOpen(v => !v)}>
         <div className={Q.iico} style={{ fontSize: 15 }}>🏗️</div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className={Q.iname}>{part.project_name || ""}</div>
@@ -1396,38 +1397,46 @@ function ProjectCard({ part }) {
         <span style={{ fontSize: 10, fontWeight: 700, color: stageColor, background: stageColor + "18", padding: "2px 7px", borderRadius: 6, flexShrink: 0 }}>
           {part.stage || "0%"}
         </span>
+        <span style={{
+          fontSize: 16, color: "#aaa", padding: "0 2px", lineHeight: 1, flexShrink: 0,
+          display: "inline-block", transform: open ? "rotate(180deg)" : "none", transition: "transform .15s",
+        }}>▾</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, padding: "10px 13px" }}>
-        {[
-          { label: "Amount", value: `₹${Number(part.amount || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` },
-          { label: "Start",  value: part.start_date || "—" },
-          { label: "End",    value: part.end_date   || "—" },
-        ].map((r) => (
-          <div key={r.label} style={{ textAlign: "center", padding: "7px 4px", borderRadius: 9, background: "#fff", border: "1px solid #e2e2ef", minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: CFG.P, overflow: "hidden", textOverflow: "ellipsis", wordBreak: "break-word" }}>{r.value}</div>
-            <div style={{ fontSize: 9.5, marginTop: 2, color: "#aaa" }}>{r.label}</div>
+      {open && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, padding: "10px 13px", borderTop: "1px solid #f0f0f8" }}>
+            {[
+              { label: "Amount", value: `₹${Number(part.amount || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` },
+              { label: "Start",  value: part.start_date || "—" },
+              { label: "End",    value: part.end_date   || "—" },
+            ].map((r) => (
+              <div key={r.label} style={{ textAlign: "center", padding: "7px 4px", borderRadius: 9, background: "#fff", border: "1px solid #e2e2ef", minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: CFG.P, overflow: "hidden", textOverflow: "ellipsis", wordBreak: "break-word" }}>{r.value}</div>
+                <div style={{ fontSize: 9.5, marginTop: 2, color: "#aaa" }}>{r.label}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 13px 10px" }}>
-        <span style={{ fontSize: 11, color: "#888" }}>Priority: <strong>{part.priority || "NORMAL"}</strong></span>
-        {part.comments ? (
-          <button onClick={() => setShowComments(v => !v)} style={{
-            marginLeft: "auto", fontSize: 11, padding: "3px 10px", borderRadius: 14,
-            border: `1px solid ${CFG.P}`, background: showComments ? CFG.P : "#f0f0f6",
-            color: showComments ? "#fff" : CFG.P, cursor: "pointer", fontFamily: "inherit",
-          }}>
-            {showComments ? "Hide Notes" : "Notes"}
-          </button>
-        ) : null}
-      </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 13px 10px" }}>
+            <span style={{ fontSize: 11, color: "#888" }}>Priority: <strong>{part.priority || "NORMAL"}</strong></span>
+            {part.comments ? (
+              <button onClick={(e) => { e.stopPropagation(); setShowComments(v => !v); }} style={{
+                marginLeft: "auto", fontSize: 11, padding: "3px 10px", borderRadius: 14,
+                border: `1px solid ${CFG.P}`, background: showComments ? CFG.P : "#f0f0f6",
+                color: showComments ? "#fff" : CFG.P, cursor: "pointer", fontFamily: "inherit",
+              }}>
+                {showComments ? "Hide Notes" : "Notes"}
+              </button>
+            ) : null}
+          </div>
 
-      {showComments && part.comments && (
-        <div style={{ padding: "8px 13px 10px", borderTop: "1px solid #e8e8f2", fontSize: 11.5, color: "#444", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
-          {part.comments}
-        </div>
+          {showComments && part.comments && (
+            <div style={{ padding: "8px 13px 10px", borderTop: "1px solid #e8e8f2", fontSize: 11.5, color: "#444", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+              {part.comments}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -1445,6 +1454,7 @@ function POCard({ part }) {
         : `https://erp-warrgyizmorsch.londonstreetstore.com/purchase-order/${poId}/show`)
     : null;
 
+  const [open, setOpen]             = useState(false);
   const [activeSection, setActiveSection] = useState(null);
   const [sectionData,   setSectionData]   = useState({});
   const [secLoading,    setSecLoading]    = useState(false);
@@ -1606,75 +1616,187 @@ function POCard({ part }) {
 
   return (
     <div className={Q.icard} style={{ marginTop: 8 }}>
-      <div className={Q.ihdr}>
+      <div className={Q.ihdr} style={{ cursor: "pointer" }} onClick={() => setOpen(v => !v)}>
         <div className={Q.iico} style={{ fontSize: 15 }}>📋</div>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className={Q.iname} style={{ fontFamily: "monospace" }}>{part.po_no || ""}</div>
           <div className={Q.imeta}>{part.supplier || ""} · {part.date}</div>
         </div>
-        <span style={{ fontSize: 10, fontWeight: 700, color: statusColor, background: statusColor + "18", padding: "2px 7px", borderRadius: 6, flexShrink: 0 }}>
-          {part.status}
-        </span>
-        {erpUrl && (
-          <a
-            href={erpUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Open in ERP"
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: 22, height: 22, borderRadius: "50%",
-              background: "#e8eef6", color: CFG.P,
-              fontSize: 12, fontWeight: 700, textDecoration: "none",
-              flexShrink: 0, border: `1px solid ${CFG.P}44`,
-              lineHeight: 1,
-            }}
-          >
-            i
-          </a>
-        )}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, padding: "10px 13px" }}>
-        {[
-          { label: "Total",   value: part.total   },
-          { label: "Advance", value: part.advance  },
-          { label: "Balance", value: part.balance  },
-        ].map((r) => (
-          <div key={r.label} style={{ textAlign: "center", padding: "7px 4px", borderRadius: 9, background: "#fff", border: "1px solid #e2e2ef", minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: CFG.P, overflow: "hidden", textOverflow: "ellipsis", wordBreak: "break-word" }}>₹{Number(r.value || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</div>
-            <div style={{ fontSize: 9.5, marginTop: 2, color: "#aaa" }}>{r.label}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "0 13px 10px" }}>
-        {BTNS.map((b) => {
-          const active = activeSection === b.key;
-          return (
-            <button
-              key={b.key}
-              onClick={() => handleBtn(b.key)}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: statusColor, background: statusColor + "18", padding: "2px 7px", borderRadius: 6 }}>
+            {part.status}
+          </span>
+          {erpUrl && (
+            <a
+              href={erpUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
               style={{
-                display: "flex", alignItems: "center", gap: 4,
-                padding: "5px 10px", borderRadius: 20,
-                border: `1px solid ${active ? CFG.P : "#c8c8d8"}`,
-                background: active ? CFG.P : "#f0f0f6",
-                color: active ? "#fff" : "#4a4a5a",
-                fontSize: 11.5, fontWeight: 600,
-                cursor: "pointer", fontFamily: "inherit",
-                transition: "all .12s",
+                fontSize: 10, fontWeight: 600, color: CFG.P,
+                textDecoration: "none", padding: "1px 6px",
+                border: `1px solid ${CFG.P}44`, borderRadius: 5,
+                background: "#f0f0f6", lineHeight: 1.6,
               }}
             >
-              {b.icon} {b.label}
-            </button>
-          );
-        })}
+              View More ↗
+            </a>
+          )}
+        </div>
+        <span style={{
+          fontSize: 16, color: "#aaa", padding: "0 2px", lineHeight: 1, flexShrink: 0,
+          display: "inline-block", transform: open ? "rotate(180deg)" : "none", transition: "transform .15s",
+        }}>▾</span>
       </div>
 
-      {activeSection && (
-        <div style={{ borderTop: "1px solid #e8e8f2" }}>
-          {renderSection()}
+      {open && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, padding: "10px 13px", borderTop: "1px solid #f0f0f8" }}>
+            {[
+              { label: "Total",   value: part.total   },
+              { label: "Advance", value: part.advance  },
+              { label: "Balance", value: part.balance  },
+            ].map((r) => (
+              <div key={r.label} style={{ textAlign: "center", padding: "7px 4px", borderRadius: 9, background: "#fff", border: "1px solid #e2e2ef", minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: CFG.P, overflow: "hidden", textOverflow: "ellipsis", wordBreak: "break-word" }}>₹{Number(r.value || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</div>
+                <div style={{ fontSize: 9.5, marginTop: 2, color: "#aaa" }}>{r.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "0 13px 10px", alignItems: "center" }}>
+            {BTNS.map((b) => {
+              const active = activeSection === b.key;
+              return (
+                <button
+                  key={b.key}
+                  onClick={(e) => { e.stopPropagation(); handleBtn(b.key); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "5px 10px", borderRadius: 20,
+                    border: `1px solid ${active ? CFG.P : "#c8c8d8"}`,
+                    background: active ? CFG.P : "#f0f0f6",
+                    color: active ? "#fff" : "#4a4a5a",
+                    fontSize: 11.5, fontWeight: 600,
+                    cursor: "pointer", fontFamily: "inherit",
+                    transition: "all .12s",
+                  }}
+                >
+                  {b.icon} {b.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {activeSection && (
+            <div style={{ borderTop: "1px solid #e8e8f2" }}>
+              {renderSection()}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROJECT CARD LIST  — search + pagination wrapper around ProjectCard
+// ─────────────────────────────────────────────────────────────────────────────
+function ProjectCardList({ parts }) {
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+
+  const toStr = (p) =>
+    `${p.project_name || ""} ${p.category || ""} ${p.priority || ""} ${p.stage || ""}`;
+  const filtered  = q.trim() ? parts.filter((p) => fuzzyMatch(q, toStr(p))) : parts;
+  const totalPgs  = Math.max(1, Math.ceil(filtered.length / PGSZ));
+  const safePg    = Math.min(page, totalPgs);
+  const paged     = filtered.slice((safePg - 1) * PGSZ, safePg * PGSZ);
+  const setQS     = (v) => { setQ(v); setPage(1); };
+
+  if (!parts.length) return null;
+  const remaining = filtered.length - safePg * PGSZ;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div className={Q.dcard} style={{ marginBottom: 0, borderRadius: "12px 12px 0 0", borderBottom: "none" }}>
+        <div className={Q.dmsg}>
+          Projects <span style={{ color: "#aaa" }}>· {parts.length}</span>
+        </div>
+        <SectionSearchBar q={q} setQ={setQS} page={safePg} setPage={setPage}
+          totalPgs={totalPgs} total={parts.length} filtered={filtered.length} />
+      </div>
+      {paged.length === 0
+        ? <div style={{ padding: "8px 13px", fontSize: 12, color: "#999" }}>No results for "{q}"</div>
+        : paged.map((p, i) => <ProjectCard key={i} part={p} />)
+      }
+      {paged.length > 0 && totalPgs > 1 && (
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", padding: "8px 0 2px" }}>
+          {safePg > 1 && (
+            <button onClick={() => setPage(p => p - 1)} style={{
+              padding: "5px 14px", borderRadius: 20, border: "1px solid #d0d0e0",
+              background: "#f5f5fa", color: "#555", fontSize: 12, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>← Prev</button>
+          )}
+          {safePg < totalPgs && (
+            <button onClick={() => setPage(p => p + 1)} style={{
+              padding: "5px 14px", borderRadius: 20, border: `1px solid ${CFG.P}44`,
+              background: CFG.P, color: "#fff", fontSize: 12, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>View More ({remaining} more) →</button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PO CARD LIST  — search + pagination wrapper around POCard
+// ─────────────────────────────────────────────────────────────────────────────
+function POCardList({ parts, onAction }) {
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+
+  const toStr = (p) =>
+    `${p.po_no || ""} ${p.supplier || ""} ${p.status || ""} ${dateSearchStr(p.date || "")}`;
+  const filtered  = q.trim() ? parts.filter((p) => fuzzyMatch(q, toStr(p))) : parts;
+  const totalPgs  = Math.max(1, Math.ceil(filtered.length / PGSZ));
+  const safePg    = Math.min(page, totalPgs);
+  const paged     = filtered.slice((safePg - 1) * PGSZ, safePg * PGSZ);
+  const setQS     = (v) => { setQ(v); setPage(1); };
+
+  if (!parts.length) return null;
+  const remaining = filtered.length - safePg * PGSZ;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div className={Q.dcard} style={{ marginBottom: 0, borderRadius: "12px 12px 0 0", borderBottom: "none" }}>
+        <div className={Q.dmsg}>
+          Purchase Orders <span style={{ color: "#aaa" }}>· {parts.length}</span>
+        </div>
+        <SectionSearchBar q={q} setQ={setQS} page={safePg} setPage={setPage}
+          totalPgs={totalPgs} total={parts.length} filtered={filtered.length} />
+      </div>
+      {paged.length === 0
+        ? <div style={{ padding: "8px 13px", fontSize: 12, color: "#999" }}>No results for "{q}"</div>
+        : paged.map((p, i) => <POCard key={i} part={p} onAction={onAction} />)
+      }
+      {paged.length > 0 && totalPgs > 1 && (
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", padding: "8px 0 2px" }}>
+          {safePg > 1 && (
+            <button onClick={() => setPage(p => p - 1)} style={{
+              padding: "5px 14px", borderRadius: 20, border: "1px solid #d0d0e0",
+              background: "#f5f5fa", color: "#555", fontSize: 12, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>← Prev</button>
+          )}
+          {safePg < totalPgs && (
+            <button onClick={() => setPage(p => p + 1)} style={{
+              padding: "5px 14px", borderRadius: 20, border: `1px solid ${CFG.P}44`,
+              background: CFG.P, color: "#fff", fontSize: 12, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>View More ({remaining} more) →</button>
+          )}
         </div>
       )}
     </div>
@@ -1731,8 +1853,8 @@ function BotBubble({ msg, onDropdownSelect, onConfirmPick, onDirectPick, onActio
 
             {showCards && resultPart && resultPart.supplier && <SupplierCard result={resultPart} onAction={onAction} />}
             {showCards && resultPart && resultPart.inventory && <InventoryCard result={resultPart} />}
-            {showCards && poParts.map((p, i) => <POCard key={i} part={p} onAction={onAction} />)}
-            {showCards && projectParts.map((p, i) => <ProjectCard key={i} part={p} />)}
+            {showCards && poParts.length > 0 && <POCardList parts={poParts} onAction={onAction} />}
+            {showCards && projectParts.length > 0 && <ProjectCardList parts={projectParts} />}
             {showCards && dropPart && (
               <DropdownCard dropdown={dropPart} onSelect={onDropdownSelect} />
             )}
@@ -1818,27 +1940,37 @@ function QuickSearch({ type, onClose, onSelect }) {
   const [rows,    setRows]    = useState([]);
   const [loading, setLoading] = useState(false);
   const [page,    setPage]    = useState(1);
-  const inputRef = useRef(null);
+  const inputRef  = useRef(null);
+  const prevType  = useRef(type);
 
-  useEffect(() => { setQ(""); setRows([]); setLoading(true); fetch_rows(""); }, [type]);
+  // Reset state when type changes — render-time update avoids setState-in-effect
+  if (prevType.current !== type) {
+    prevType.current = type;
+    setQ("");
+    setRows([]);
+    setPage(1);
+  }
 
-  useEffect(() => {
-    const t = setTimeout(() => fetch_rows(q), 260);
-    return () => clearTimeout(t);
-  }, [q]);
-
-  useEffect(() => { setPage(1); }, [rows]);
-
-  const fetch_rows = async (query) => {
+  const fetchRows = useCallback(async (query) => {
     setLoading(true);
     try {
       const base = API_BASE.replace(/\/$/, "");
       const res  = await fetch(`${base}/quick-search/${type}?q=${encodeURIComponent(query)}&limit=80`);
       if (res.ok) setRows((await res.json()).rows || []);
-    } catch {}
+    } catch (_e) { /* network errors are silent */ }
     setLoading(false);
     if (inputRef.current) inputRef.current.focus();
-  };
+  }, [type]);
+
+  // Initial fetch when type mounts
+  useEffect(() => { fetchRows(""); }, [fetchRows]);
+
+  // Debounced fetch on query change
+  useEffect(() => {
+    if (!q) return;
+    const t = setTimeout(() => fetchRows(q), 260);
+    return () => clearTimeout(t);
+  }, [q, fetchRows]);
 
   const cfg      = QB.find(b => b.key === type) || QB[0];
   const totalPgs = Math.max(1, Math.ceil(rows.length / PGSZ));
@@ -1989,7 +2121,7 @@ export default function ChatWidget() {
   const [isOpen,   setIsOpen]  = useState(false);
   const [query,    setQuery]   = useState("");
   const [loading,  setLoading] = useState(false);
-  const [role,     setRole]    = useState(CFG.defaultRole);
+  const [role,     setRole]    = useState("superadmin"); // eslint-disable-line no-unused-vars
 
   const tabIdCounter   = useRef(1);
   const [tabs, setTabs]          = useState(() => [_mkTab(1, "Chat 1")]);
@@ -2287,7 +2419,6 @@ export default function ChatWidget() {
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-                <RoleSelector role={role} onChange={handleRoleChange} />
                 <button className={Q.hbtn} onClick={handleClear} title="Clear chat">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
