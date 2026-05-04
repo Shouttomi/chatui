@@ -8,8 +8,10 @@ import { useState, useRef, useCallback, useEffect } from "react";
 //   VITE_CHATBOT_API="http://your-backend.com/v2-chatbot/"
 //   VITE_CHATBOT_FEEDBACK_API="http://your-backend.com/v2-chatbot/feedback"
 // ─────────────────────────────────────────────────────────────────────────────
+// OLD: const API_BASE = import.meta.env?.VITE_CHATBOT_API || "https://love14-mewar-erp-bot.hf.space/chatbot";
+// NEW: points to local FastAPI server chatbot2 router
 const API_BASE =
-  import.meta.env?.VITE_CHATBOT_API || "https://love14-mewar-erp-bot.hf.space/chatbot";
+  import.meta.env?.VITE_CHATBOT_API || "http://localhost:8000/v2-chatbot";
 const FEEDBACK_URL =
   import.meta.env?.VITE_CHATBOT_FEEDBACK_API ||
   API_BASE.replace(/\/$/, "") + "/feedback";
@@ -245,13 +247,15 @@ const Q = {
   display:flex;align-items:center;gap:10px;width:100%;text-align:left;
   padding:11px 12px;border:1px solid #e8e8f0;border-radius:11px;
   cursor:pointer;font-family:inherit;background:#fff;margin-bottom:6px;
-  transition:all .13s;font-weight:500;
+  transition:all .13s;font-weight:500;box-sizing:border-box;
   box-shadow:0 1px 3px rgba(0,0,0,.04);
 }
 .${Q.ditem}:hover{background:#f5f5fa;border-color:#d5d5e5;transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.08);}
 .${Q.ditem}:last-child{margin-bottom:0;}
-.${Q.did}{font-size:10px;color:#b8b8c8;font-family:monospace;flex-shrink:0;font-weight:600;}
-.${Q.dname}{flex:1;font-size:13px;font-weight:600;color:${CFG.P};}
+/* OLD: .${Q.did}{font-size:10px;color:#b8b8c8;font-family:monospace;flex-shrink:0;font-weight:600;} */
+/* OLD: .${Q.dname}{flex:1;font-size:13px;font-weight:600;color:${CFG.P};} */
+.${Q.did}{font-size:10px;color:#b8b8c8;font-family:monospace;flex-shrink:0;font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.${Q.dname}{flex:1;font-size:13px;font-weight:600;color:${CFG.P};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
 
 /* Input bar */
 .${Q.ibar}{
@@ -715,9 +719,9 @@ function InventoryCard({ result }) {
               style={{
                 display: "flex", alignItems: "center", gap: 4,
                 padding: "5px 10px", borderRadius: 20,
-                border: `1px solid ${active ? CFG.A : CFG.A + "44"}`,
-                background: active ? CFG.A : `${CFG.A}0f`,
-                color: active ? "#fff" : CFG.A,
+                border: `1px solid ${active ? CFG.P : "#c8c8d8"}`,
+                background: active ? CFG.P : "#f0f0f6",
+                color: active ? "#fff" : "#4a4a5a",
                 fontSize: 11.5, fontWeight: 600,
                 cursor: "pointer", fontFamily: "inherit",
                 transition: "all .12s",
@@ -767,7 +771,10 @@ function DropdownCard({ dropdown, onSelect }) {
               className={Q.ditem}
               onClick={() => onSelect(item.name?.trim())}
             >
-              <span className={Q.did}>#{item.id}</span>
+              {/* OLD: <span className={Q.did}>#{item.id}</span> — hid when id === name (long supplier names) */}
+              {(typeof item.id === "number" || (typeof item.id === "string" && item.id.length <= 20 && item.id !== item.name)) && (
+                <span className={Q.did}>#{item.id}</span>
+              )}
               <span className={Q.dname}>{item.name?.trim()}</span>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5" strokeLinecap="round">
                 <polyline points="9 18 15 12 9 6" />
@@ -1113,9 +1120,9 @@ function POListInline({ rows, supplierName }) {
     <div style={{ padding: "6px 0 0" }}>
       <SectionSearchBar q={q} setQ={handleSetQ} page={safePg} setPage={setPage}
         totalPgs={totalPgs} total={rows.length} filtered={filtered.length} />
-      <div>
+      <div style={{ padding: "0 8px" }}>
         {paged.length === 0
-          ? <div style={{ padding: "10px 13px", fontSize: 12, color: "#999" }}>No results for "{q}"</div>
+          ? <div style={{ padding: "10px 5px", fontSize: 12, color: "#999" }}>No results for "{q}"</div>
           : paged.map((r) => {
             const sc     = r.status === "Completed" ? "#16a34a" : r.status === "Cancelled" ? "#dc2626" : "#d97706";
             const active = selectedId === r.id;
@@ -1256,9 +1263,9 @@ function SupplierCard({ result }) {
         <div>
           <SectionSearchBar q={q} setQ={v => setSQ("items",v)} page={safePg} setPage={v => setSP("items",v)}
             totalPgs={totalPgs} total={rows.length} filtered={filtered.length} />
-          <div style={{ overflowY: "auto" }}>
+          <div style={{ overflowY: "auto", padding: "0 8px" }}>
             {paged.length === 0
-              ? <div style={{ padding:"10px 13px", fontSize:12, color:"#999" }}>No results for "{q}"</div>
+              ? <div style={{ padding:"10px 5px", fontSize:12, color:"#999" }}>No results for "{q}"</div>
               : paged.map((r, i) => (
                 <div key={i} className={Q.ditem} style={{ cursor: "default" }}>
                   <span className={Q.did}>#{(safePg-1)*PGSZ+i+1}</span>
@@ -1294,9 +1301,9 @@ function SupplierCard({ result }) {
               Total Paid: {fmtINR(data.total_paid)}
             </div>
           )}
-          <div style={{ overflowY: "auto" }}>
+          <div style={{ overflowY: "auto", padding: "0 8px" }}>
             {paged.length === 0
-              ? <div style={{ padding:"10px 13px", fontSize:12, color:"#999" }}>No results for "{q}"</div>
+              ? <div style={{ padding:"10px 5px", fontSize:12, color:"#999" }}>No results for "{q}"</div>
               : paged.map((r, i) => (
                 <div key={i} className={Q.ditem} style={{ cursor: "default" }}>
                   <span className={Q.did}>#{(safePg-1)*PGSZ+i+1}</span>
@@ -1347,9 +1354,9 @@ function SupplierCard({ result }) {
               style={{
                 display: "flex", alignItems: "center", gap: 4,
                 padding: "5px 10px", borderRadius: 20,
-                border: `1px solid ${active ? CFG.A : CFG.A + "44"}`,
-                background: active ? CFG.A : `${CFG.A}0f`,
-                color: active ? "#fff" : CFG.A,
+                border: `1px solid ${active ? CFG.P : "#c8c8d8"}`,
+                background: active ? CFG.P : "#f0f0f6",
+                color: active ? "#fff" : "#4a4a5a",
                 fontSize: 11.5, fontWeight: 600,
                 cursor: "pointer", fontFamily: "inherit",
                 transition: "all .12s",
@@ -1572,9 +1579,9 @@ function POCard({ part }) {
               style={{
                 display: "flex", alignItems: "center", gap: 4,
                 padding: "5px 10px", borderRadius: 20,
-                border: `1px solid ${active ? CFG.A : CFG.A + "44"}`,
-                background: active ? CFG.A : `${CFG.A}0f`,
-                color: active ? "#fff" : CFG.A,
+                border: `1px solid ${active ? CFG.P : "#c8c8d8"}`,
+                background: active ? CFG.P : "#f0f0f6",
+                color: active ? "#fff" : "#4a4a5a",
                 fontSize: 11.5, fontWeight: 600,
                 cursor: "pointer", fontFamily: "inherit",
                 transition: "all .12s",
@@ -1720,9 +1727,9 @@ function RoleSelector({ role, onChange }) {
 // QUICK SEARCH OVERLAY  — full-cover panel inside the chat area
 // ─────────────────────────────────────────────────────────────────────────────
 const QB = [
-  { key: "supplier",  icon: "🏭", label: "Suppliers",      color: "#7c3aed" },
-  { key: "po",        icon: "📋", label: "Purchase Orders", color: "#0369a1" },
-  { key: "inventory", icon: "📦", label: "Inventory",       color: "#15803d" },
+  { key: "supplier",  icon: "🏭", label: "Suppliers",      color: "#4a5568" },
+  { key: "po",        icon: "📋", label: "Purchase Orders", color: "#2d5f8a" },
+  { key: "inventory", icon: "📦", label: "Inventory",       color: "#2d6a4a" },
 ];
 
 function QuickSearch({ type, onClose, onSelect }) {
@@ -2035,7 +2042,8 @@ export default function ChatWidget() {
         return null;
       }).filter(Boolean).join("\n");
 
-      const assistantTurn = { role: "assistant", content: botText, pending_resolution: pending };
+      const assistantTurn = { role: "assistant", content: botText };
+      if (pending) assistantTurn.pending_resolution = pending;
       if (contextEntity) assistantTurn.context_entity = contextEntity;
       const newHistory = [...curHistory, { role: "user", content: trimmed }, assistantTurn];
 
