@@ -1378,11 +1378,72 @@ function SupplierCard({ result }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PROJECT CARD
+// ─────────────────────────────────────────────────────────────────────────────
+function ProjectCard({ part }) {
+  const stageNum = parseInt(part.stage) || 0;
+  const stageColor = stageNum === 100 ? "#16a34a" : stageNum >= 50 ? "#2d5f8a" : "#d97706";
+  const [showComments, setShowComments] = useState(false);
+
+  return (
+    <div className={Q.icard} style={{ marginTop: 8 }}>
+      <div className={Q.ihdr}>
+        <div className={Q.iico} style={{ fontSize: 15 }}>🏗️</div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div className={Q.iname}>{part.project_name || ""}</div>
+          <div className={Q.imeta}>{part.category || ""}</div>
+        </div>
+        <span style={{ fontSize: 10, fontWeight: 700, color: stageColor, background: stageColor + "18", padding: "2px 7px", borderRadius: 6, flexShrink: 0 }}>
+          {part.stage || "0%"}
+        </span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, padding: "10px 13px" }}>
+        {[
+          { label: "Amount", value: `₹${Number(part.amount || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` },
+          { label: "Start",  value: part.start_date || "—" },
+          { label: "End",    value: part.end_date   || "—" },
+        ].map((r) => (
+          <div key={r.label} style={{ textAlign: "center", padding: "7px 4px", borderRadius: 9, background: "#fff", border: "1px solid #e2e2ef", minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: CFG.P, overflow: "hidden", textOverflow: "ellipsis", wordBreak: "break-word" }}>{r.value}</div>
+            <div style={{ fontSize: 9.5, marginTop: 2, color: "#aaa" }}>{r.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 13px 10px" }}>
+        <span style={{ fontSize: 11, color: "#888" }}>Priority: <strong>{part.priority || "NORMAL"}</strong></span>
+        {part.comments ? (
+          <button onClick={() => setShowComments(v => !v)} style={{
+            marginLeft: "auto", fontSize: 11, padding: "3px 10px", borderRadius: 14,
+            border: `1px solid ${CFG.P}`, background: showComments ? CFG.P : "#f0f0f6",
+            color: showComments ? "#fff" : CFG.P, cursor: "pointer", fontFamily: "inherit",
+          }}>
+            {showComments ? "Hide Notes" : "Notes"}
+          </button>
+        ) : null}
+      </div>
+
+      {showComments && part.comments && (
+        <div style={{ padding: "8px 13px 10px", borderTop: "1px solid #e8e8f2", fontSize: 11.5, color: "#444", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+          {part.comments}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PO CARD
 // ─────────────────────────────────────────────────────────────────────────────
 function POCard({ part }) {
   const statusColor = part.status === "Completed" ? "#16a34a" : part.status === "Cancelled" ? "#dc2626" : "#d97706";
-  const poId = part.po_id || null;
+  const poId = part.po_id || part.id || null;
+  const erpUrl = poId
+    ? (part.view_link
+        ? `https://erp-warrgyizmorsch.londonstreetstore.com${part.view_link}`
+        : `https://erp-warrgyizmorsch.londonstreetstore.com/purchase-order/${poId}/show`)
+    : null;
 
   const [activeSection, setActiveSection] = useState(null);
   const [sectionData,   setSectionData]   = useState({});
@@ -1554,6 +1615,24 @@ function POCard({ part }) {
         <span style={{ fontSize: 10, fontWeight: 700, color: statusColor, background: statusColor + "18", padding: "2px 7px", borderRadius: 6, flexShrink: 0 }}>
           {part.status}
         </span>
+        {erpUrl && (
+          <a
+            href={erpUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open in ERP"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 22, height: 22, borderRadius: "50%",
+              background: "#e8eef6", color: CFG.P,
+              fontSize: 12, fontWeight: 700, textDecoration: "none",
+              flexShrink: 0, border: `1px solid ${CFG.P}44`,
+              lineHeight: 1,
+            }}
+          >
+            i
+          </a>
+        )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, padding: "10px 13px" }}>
@@ -1611,9 +1690,10 @@ function BotBubble({ msg, onDropdownSelect, onConfirmPick, onDirectPick, onActio
   // the ConfirmCard itself so users see the buttons.
   const parts       = msg.parts ?? [];
   const chatParts   = parts.filter((p) => p.type === "chat");
-  const resultPart  = parts.find((p)   => p.type === "result");
-  const poParts     = parts.filter((p) => p.type === "po");
-  const dropPart    = parts.find((p)   => p.type === "dropdown");
+  const resultPart    = parts.find((p)   => p.type === "result");
+  const poParts       = parts.filter((p) => p.type === "po");
+  const projectParts  = parts.filter((p) => p.type === "project");
+  const dropPart      = parts.find((p)   => p.type === "dropdown");
   const confirmPart = parts.find((p)   => p.type === "confirm_resolution");
   const listParts   = parts.filter((p) =>
     ["po_list", "po_summary", "project_list", "supplier_list",
@@ -1652,6 +1732,7 @@ function BotBubble({ msg, onDropdownSelect, onConfirmPick, onDirectPick, onActio
             {showCards && resultPart && resultPart.supplier && <SupplierCard result={resultPart} onAction={onAction} />}
             {showCards && resultPart && resultPart.inventory && <InventoryCard result={resultPart} />}
             {showCards && poParts.map((p, i) => <POCard key={i} part={p} onAction={onAction} />)}
+            {showCards && projectParts.map((p, i) => <ProjectCard key={i} part={p} />)}
             {showCards && dropPart && (
               <DropdownCard dropdown={dropPart} onSelect={onDropdownSelect} />
             )}
@@ -2038,6 +2119,7 @@ export default function ChatWidget() {
           return r.rows?.map(row => `PO: ${row.po_number||row.po||""}, Supplier: ${row.supplier_name||""}, Amount: ${row.total_amount??row.total??""}, Status: ${row.status||""}`).join("\n");
         if (r.type === "supplier_list") return r.rows?.map(row => `Supplier: ${row.name||row.supplier_name||""}`).join("\n");
         if (r.type === "project_list")  return r.rows?.map(row => `Project: ${row.name||row.grp||""}`).join("\n");
+        if (r.type === "project")       return `Project: ${r.project_name||""}, Amount: ${r.amount||""}, Stage: ${r.stage||""}`;
         if (r.type === "dropdown")      return r.items?.map(item => `Option: ${item.name}`).join(", ");
         return null;
       }).filter(Boolean).join("\n");
